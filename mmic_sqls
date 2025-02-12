@@ -1,0 +1,74 @@
+SELECT p.SUBJECT_ID, p.GENDER, p.DOB, a.ADMITTIME, a.DISCHTIME, a.INSURANCE
+FROM patients p
+JOIN admissions a ON p.SUBJECT_ID = a.SUBJECT_ID;
+
+
+SELECT INSURANCE, COUNT(*) AS patient_count
+FROM admissions
+GROUP BY INSURANCE
+ORDER BY patient_count DESC;
+
+SELECT *
+FROM patients
+WHERE SUBJECT_ID IN (SELECT DISTINCT SUBJECT_ID FROM icustays);
+
+SELECT SUBJECT_ID, MAX(LOS) AS longest_stay
+FROM icustays
+GROUP BY SUBJECT_ID
+ORDER BY longest_stay DESC
+LIMIT 15;
+
+SELECT a.* FROM admissions a
+JOIN patients p ON a.SUBJECT_ID = p.SUBJECT_ID
+WHERE p.EXPIRE_FLAG = 1;
+
+SELECT a.INSURANCE, AVG(i.LOS) AS avg_icu_stay
+FROM admissions a
+JOIN icustays i ON a.HADM_ID = i.HADM_ID
+GROUP BY a.INSURANCE
+ORDER BY avg_icu_stay DESC;
+
+SELECT SUBJECT_ID, COUNT(*) AS num_admissions
+FROM admissions
+GROUP BY SUBJECT_ID
+HAVING COUNT(*) > 1;
+
+SELECT SUBJECT_ID, COUNT(*) AS icu_visits
+FROM icustays
+GROUP BY SUBJECT_ID
+ORDER BY icu_visits DESC
+LIMIT 10;
+
+SELECT SUBJECT_ID, MIN(ADMITTIME) AS first_admission
+FROM admissions
+GROUP BY SUBJECT_ID;
+
+
+SELECT a1.SUBJECT_ID, a1.ADMITTIME AS first_admission, a2.ADMITTIME AS readmission
+FROM admissions a1
+JOIN admissions a2 
+ON a1.SUBJECT_ID = a2.SUBJECT_ID 
+AND a1.HADM_ID <> a2.HADM_ID
+AND a2.ADMITTIME BETWEEN a1.DISCHTIME AND a1.DISCHTIME + INTERVAL '30 days'
+ORDER BY a1.SUBJECT_ID, a1.ADMITTIME;
+
+SELECT a1.SUBJECT_ID, a1.ADMITTIME AS first_admission, a2.ADMITTIME AS readmission
+FROM admissions a1
+JOIN admissions a2 
+ON a1.SUBJECT_ID = a2.SUBJECT_ID 
+AND a1.HADM_ID <> a2.HADM_ID
+AND a2.ADMITTIME BETWEEN a1.DISCHTIME AND a1.DISCHTIME + INTERVAL '30 days'
+ORDER BY a1.SUBJECT_ID, a1.ADMITTIME;
+
+SELECT 
+    CASE 
+        WHEN DATE_PART('year', AGE(ADMITTIME, DOB)) < 18 THEN 'Children (<18)'
+        WHEN DATE_PART('year', AGE(ADMITTIME, DOB)) BETWEEN 18 AND 40 THEN 'Young Adults (18-40)'
+        WHEN DATE_PART('year', AGE(ADMITTIME, DOB)) BETWEEN 41 AND 65 THEN 'Matured Adults (41-65)'
+        ELSE 'Seniors (>65)'
+    END AS age_group,
+    COUNT(*) AS patient_count
+FROM admissions a
+JOIN patients p ON a.SUBJECT_ID = p.SUBJECT_ID
+GROUP BY age_group
+ORDER BY patient_count DESC;
